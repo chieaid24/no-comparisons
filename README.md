@@ -17,4 +17,4 @@ This chrome extension hides the contribution graph and contribution activity fro
 
 ## Why?
 
-Contribution graphs encourage developers to display visible GitHub activity instead of quality of their work.
+Contribution graphs encourage developers to display visible GitHub activity instead of the quality of their work.
