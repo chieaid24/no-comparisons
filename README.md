@@ -1,6 +1,6 @@
 # No Contributions
 
-This chrome extension hides the contribution graph and contribution activity from GitHub user profiles. I use it stop obsessing over my surface level progress (commits, prs, etc) and focus on actual impact (value of projects).
+This chrome extension hides the contribution graph and contribution activity from GitHub user profiles. I use it stop obsessing over my surface level progress (commits, prs, etc) and focus on what matters to me (value of projects).
 
 ## Installation
 
