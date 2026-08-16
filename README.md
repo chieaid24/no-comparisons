@@ -1,9 +1,5 @@
 # no-contributions
 
-<p align="center">
-  <img src="assets/logo.png" alt="A cat developer mascot with X-shaped eyes" width="160">
-</p>
-
 no-contributions hides the contribution graph and contribution activity from GitHub user profiles.
 
 The extension leaves repositories, organizations, issues, pull requests, and other GitHub pages unchanged. It stores no data and makes no network requests.
