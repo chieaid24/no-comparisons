@@ -24,7 +24,3 @@ The extension leaves repositories, organizations, issues, pull requests, and oth
 ## Why?
 
 Contribution graphs can encourage judging developers by visible GitHub activity instead of the quality of their work. This extension removes that signal.
-
-## License
-
-[MIT](LICENSE)
