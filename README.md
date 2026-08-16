@@ -1,8 +1,6 @@
-# no-contributions
+# No Contributions
 
-no-contributions hides the contribution graph and contribution activity from GitHub user profiles.
-
-The extension leaves repositories, organizations, issues, pull requests, and other GitHub pages unchanged. It stores no data and makes no network requests.
+This chrome extension hides the contribution graph and contribution activity from GitHub user profiles. I use it stop obsessing over my surface level progress (commits, prs, etc) and focus on actual impact (value of projects).
 
 ## Installation
 
@@ -19,4 +17,4 @@ The extension leaves repositories, organizations, issues, pull requests, and oth
 
 ## Why?
 
-Contribution graphs can encourage judging developers by visible GitHub activity instead of the quality of their work. This extension removes that signal.
+Contribution graphs encourage developers to display visible GitHub activity instead of quality of their work.
