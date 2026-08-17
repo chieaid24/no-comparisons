@@ -231,10 +231,10 @@ const createBrowser = ({
   };
 };
 
-const githubSafeUrl =
-  "https://github.com/chieaid24?tab=repositories#no-comparisons-redirected";
-const linkedinSafeUrl =
-  "https://www.linkedin.com/in/aidanchien/#no-comparisons-redirected";
+const githubSafeUrl = "https://github.com/chieaid24?tab=repositories";
+const githubProfileRedirect = `${githubSafeUrl}#no-comparisons-redirected`;
+const linkedinSafeUrl = "https://www.linkedin.com/in/aidanchien/";
+const linkedinProfileRedirect = `${linkedinSafeUrl}#no-comparisons-redirected`;
 
 test("redirects the owner's GitHub Overview on direct load and refresh", async () => {
   for (let load = 0; load < 2; load += 1) {
@@ -281,7 +281,7 @@ test("redirects confirmed other GitHub users and respects its toggle", async () 
     profileUsername: "octocat",
   });
   await enabled.run("github");
-  assert.deepEqual(enabled.redirects, [githubSafeUrl]);
+  assert.deepEqual(enabled.redirects, [githubProfileRedirect]);
 
   const disabled = createBrowser({
     href: "https://github.com/octocat?tab=followers",
@@ -341,13 +341,20 @@ test("enabling a GitHub restriction applies immediately", async () => {
 });
 
 test("redirects LinkedIn feed and other profiles independently", async () => {
-  for (const href of [
-    "https://www.linkedin.com/feed/?trk=nav_back_to_linkedin",
-    "https://www.linkedin.com/in/someone/details/education/",
-  ]) {
+  const cases = [
+    {
+      href: "https://www.linkedin.com/feed/?trk=nav_back_to_linkedin",
+      expected: linkedinSafeUrl,
+    },
+    {
+      href: "https://www.linkedin.com/in/someone/details/education/",
+      expected: linkedinProfileRedirect,
+    },
+  ];
+  for (const { href, expected } of cases) {
     const browser = createBrowser({ href });
     await browser.run("linkedin");
-    assert.deepEqual(browser.redirects, [linkedinSafeUrl]);
+    assert.deepEqual(browser.redirects, [expected], href);
   }
 
   const feedDisabled = createBrowser({
@@ -392,7 +399,7 @@ test("LinkedIn SPA and history navigation cannot bypass restrictions", async () 
     } else {
       await browser.dispatchWindow("popstate");
     }
-    assert.deepEqual(browser.redirects, [linkedinSafeUrl]);
+    assert.deepEqual(browser.redirects, [linkedinProfileRedirect]);
   }
 });
 

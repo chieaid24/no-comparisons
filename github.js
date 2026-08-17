@@ -29,7 +29,12 @@
     );
     if (destination) {
       redirecting = true;
-      location.replace(toast.withMarker(destination));
+      const fromOtherProfile =
+        routing.classifyGitHubUrl(location.href, githubUsername).kind ===
+        "profile-candidate";
+      location.replace(
+        fromOtherProfile ? toast.withMarker(destination) : destination,
+      );
     }
   };
 
