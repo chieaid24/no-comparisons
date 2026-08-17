@@ -1,6 +1,6 @@
 # No Comparisons
 
-This Chrome extension hides contribution activity and blocks social-comparison distractions on GitHub and LinkedIn. I use it to stop obsessing over surface-level progress (commits, PRs, etc.) and focus on what matters to me.
+This Chrome extension hides contribution activity and blocks social-comparison distractions on GitHub and LinkedIn.
 
 ## Installation
 
