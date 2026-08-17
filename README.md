@@ -1,26 +1,20 @@
-# no-comparisons
+# No Comparisons
 
-no-comparisons reduces distracting social-comparison signals on GitHub and LinkedIn.
-
-The extension:
-
-- Hides GitHub contribution graphs, activity, and year navigation.
-- Blocks your GitHub Overview and Followers while leaving Following available.
-- Uses redirect-only blocking for other individual GitHub profiles, leaving user links and user interface elements visible.
-- Blocks the LinkedIn home feed.
-- Uses redirect-only blocking for other LinkedIn profiles, leaving user links and user interface elements visible.
-- Provides six independent toggles through the extension popup.
-
-Repositories, organizations, issues, pull requests, jobs, messaging, notifications, settings, and other application pages remain accessible. The extension makes no network requests.
+This Chrome extension hides contribution activity and blocks social-comparison distractions on GitHub and LinkedIn. I use it to stop obsessing over surface-level progress (commits, PRs, etc.) and focus on what matters to me.
 
 ## Installation
 
 1. Clone or download this repository.
+
+   ```bash
+   git clone https://github.com/chieaid24/no-comparisons.git
+   ```
+
 2. Open `chrome://extensions` in Chrome.
 3. Enable **Developer mode**.
 4. Click **Load unpacked**.
-5. Select the repository folder.
+5. Select the `no-comparisons` folder.
 
 ## Configuration
 
-Set `githubUsername` and `linkedinProfileSlug` in `config.js` before loading the extension for another account. Click the extension icon to change blockers; popup settings persist across browser restarts.
+Set `githubUsername` and `linkedinProfileSlug` in `config.js` before loading the extension for another account. Click the extension icon to choose what to block.
