@@ -1,6 +1,6 @@
-# no-contributions
+# No Contributions
 
-no-contributions reduces social-comparison distractions on GitHub and LinkedIn.
+No Contributions reduces distracting social-comparison signals on GitHub and LinkedIn.
 
 The extension:
 
@@ -27,7 +27,3 @@ Repositories, organizations, issues, pull requests, jobs, messaging, notificatio
 ## Configuration
 
 Set `githubUsername` and `linkedinProfileSlug` in `config.js` before loading the extension for another account.
-
-## Why?
-
-Contribution graphs, social feeds, and other profiles can shift attention toward visible activity and comparison. This extension removes those distractions while keeping work pages accessible.
