@@ -52,12 +52,12 @@ const makeInput = (setting) => {
   };
 };
 
-test("all six settings default to enabled", async () => {
+test("all seven settings default to enabled", async () => {
   installStorage();
   const settings = await settingsApi.load();
 
   assert.deepEqual(settings, settingsApi.defaults);
-  assert.equal(Object.keys(settings).length, 6);
+  assert.equal(Object.keys(settings).length, 7);
   assert.equal(Object.values(settings).every(Boolean), true);
 });
 
