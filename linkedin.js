@@ -27,7 +27,12 @@
     );
     if (destination) {
       redirecting = true;
-      location.replace(toast.withMarker(destination));
+      const fromOtherProfile =
+        routing.classifyLinkedInUrl(location.href, linkedinProfileSlug).kind ===
+        "other-profile";
+      location.replace(
+        fromOtherProfile ? toast.withMarker(destination) : destination,
+      );
     }
   };
 
