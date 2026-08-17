@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "No Contributions",
-  "version": "1.0.0",
-  "description": "Hides contribution graphs and activity from GitHub user profiles.",
+  "version": "1.1.0",
+  "description": "Reduces social-comparison distractions on GitHub and LinkedIn.",
   "icons": {
     "16": "assets/icon-16.png",
     "32": "assets/icon-32.png",
@@ -12,7 +12,15 @@
   "content_scripts": [
     {
       "matches": ["https://github.com/*"],
-      "js": ["content.js"],
+      "js": ["config.js", "routing.js", "github.js", "content.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://linkedin.com/*",
+        "https://www.linkedin.com/*"
+      ],
+      "js": ["config.js", "routing.js", "linkedin.js"],
       "run_at": "document_start"
     }
   ]
