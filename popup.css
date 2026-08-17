@@ -1,0 +1,64 @@
+:root {
+  color-scheme: light dark;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body {
+  margin: 0;
+  width: 320px;
+}
+
+main {
+  padding: 14px;
+}
+
+h1 {
+  font-size: 16px;
+  margin: 0 0 10px;
+}
+
+label {
+  align-items: center;
+  display: flex;
+  font-size: 13px;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 30px;
+}
+
+input[role="switch"] {
+  appearance: none;
+  background: #8c959f;
+  border: 0;
+  border-radius: 11px;
+  cursor: pointer;
+  flex: 0 0 auto;
+  height: 20px;
+  margin: 0;
+  position: relative;
+  width: 36px;
+}
+
+input[role="switch"]::after {
+  background: #ffffff;
+  border-radius: 50%;
+  content: "";
+  height: 16px;
+  left: 2px;
+  position: absolute;
+  top: 2px;
+  width: 16px;
+}
+
+input[role="switch"]:checked {
+  background: #1f883d;
+}
+
+input[role="switch"]:checked::after {
+  left: 18px;
+}
+
+input[role="switch"]:focus-visible {
+  outline: 2px solid #0969da;
+  outline-offset: 2px;
+}

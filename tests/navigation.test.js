@@ -7,20 +7,48 @@ const vm = require("node:vm");
 const readScript = (name) =>
   fs.readFileSync(path.join(__dirname, "..", name), "utf8");
 
-const sources = {
-  config: readScript("config.js"),
-  github: readScript("github.js"),
-  linkedin: readScript("linkedin.js"),
-  routing: readScript("routing.js"),
+const sources = Object.fromEntries(
+  [
+    "config",
+    "settings",
+    "routing",
+    "toast",
+    "dom",
+    "content",
+    "github",
+    "linkedin-dom",
+    "linkedin",
+  ].map((name) => [name, readScript(`${name}.js`)]),
+);
+
+const defaultSettings = {
+  hideGitHubContributions: true,
+  blockGitHubOverview: true,
+  blockGitHubFollowers: true,
+  blockGitHubProfiles: true,
+  blockLinkedInFeed: true,
+  blockLinkedInProfiles: true,
 };
 
-const createBrowser = ({ href, profileType = null, profileUsername = null }) => {
-  const state = { href, profileType, profileUsername };
+const createBrowser = ({
+  href,
+  profileType = null,
+  profileUsername = null,
+  settings = {},
+}) => {
+  const state = {
+    href,
+    profileType,
+    profileUsername,
+    settings: { ...defaultSettings, ...settings },
+  };
   const redirects = [];
   const microtasks = [];
   const documentEvents = new Map();
   const windowEvents = new Map();
-  let mutationCallback;
+  const storageListeners = new Set();
+  const mutationCallbacks = [];
+  const styles = new Map();
 
   const addEvent = (events, name, callback) => {
     const callbacks = events.get(name) ?? [];
@@ -31,6 +59,22 @@ const createBrowser = ({ href, profileType = null, profileUsername = null }) => 
   const document = {
     addEventListener(name, callback) {
       addEvent(documentEvents, name, callback);
+    },
+    createElement() {
+      return { dataset: {}, style: {} };
+    },
+    documentElement: {
+      append(element) {
+        styles.set(element.id, element);
+      },
+    },
+    getElementById(id) {
+      return styles.get(id) ?? null;
+    },
+    head: {
+      append(element) {
+        styles.set(element.id, element);
+      },
     },
     querySelector(selector) {
       if (selector === 'meta[property="profile:username"]') {
@@ -52,6 +96,9 @@ const createBrowser = ({ href, profileType = null, profileUsername = null }) => 
       }
       return null;
     },
+    querySelectorAll() {
+      return [];
+    },
   };
 
   const window = {
@@ -70,180 +117,291 @@ const createBrowser = ({ href, profileType = null, profileUsername = null }) => 
     },
   };
 
+  const history = {
+    state: null,
+    replaceState(_state, _title, url) {
+      state.href = url;
+    },
+  };
+
   class MutationObserver {
     constructor(callback) {
-      mutationCallback = callback;
+      mutationCallbacks.push(callback);
     }
 
     observe() {}
   }
 
+  const chrome = {
+    storage: {
+      local: {
+        async get(defaults) {
+          return { ...defaults, ...state.settings };
+        },
+        async set(changes) {
+          const events = {};
+          for (const [key, value] of Object.entries(changes)) {
+            events[key] = {
+              oldValue: state.settings[key],
+              newValue: value,
+            };
+            state.settings[key] = value;
+          }
+          for (const listener of storageListeners) {
+            listener(events, "local");
+          }
+        },
+      },
+      onChanged: {
+        addListener(listener) {
+          storageListeners.add(listener);
+        },
+        removeListener(listener) {
+          storageListeners.delete(listener);
+        },
+      },
+    },
+  };
+
   const context = vm.createContext({
     URL,
+    chrome,
     document,
+    history,
     location,
     MutationObserver,
     queueMicrotask(callback) {
       microtasks.push(callback);
     },
+    requestAnimationFrame(callback) {
+      callback();
+    },
+    setTimeout() {},
     window,
   });
 
-  const flushMicrotasks = () => {
-    while (microtasks.length > 0) {
-      microtasks.shift()();
+  const flush = async () => {
+    for (let index = 0; index < 4; index += 1) {
+      await Promise.resolve();
+      while (microtasks.length > 0) {
+        microtasks.shift()();
+      }
     }
   };
 
   return {
-    dispatchDocument(name) {
+    async changeSetting(key, value) {
+      await chrome.storage.local.set({ [key]: value });
+      await flush();
+    },
+    async dispatchDocument(name) {
       for (const callback of documentEvents.get(name) ?? []) {
         callback();
       }
-      flushMicrotasks();
+      await flush();
     },
-    dispatchWindow(name) {
+    async dispatchWindow(name) {
       for (const callback of windowEvents.get(name) ?? []) {
         callback();
       }
-      flushMicrotasks();
+      await flush();
     },
-    flushMicrotasks,
     redirects,
-    run(...scripts) {
+    async run(site) {
+      const scripts = ["config", "settings", "routing", "toast", "dom"];
+      if (site === "github") {
+        scripts.push("content", "github");
+      } else {
+        scripts.push("linkedin-dom", "linkedin");
+      }
       for (const script of scripts) {
         vm.runInContext(sources[script], context);
       }
-      flushMicrotasks();
+      await flush();
     },
     setPage(next) {
       Object.assign(state, next);
     },
-    triggerMutation() {
-      mutationCallback();
-      flushMicrotasks();
+    async triggerMutation() {
+      for (const callback of mutationCallbacks) {
+        callback();
+      }
+      await flush();
     },
   };
 };
 
-test("redirects confirmed GitHub user profiles on direct loads and refreshes", () => {
-  for (let load = 0; load < 2; load += 1) {
-    const browser = createBrowser({
-      href: "https://github.com/octocat?tab=repositories",
-      profileType: "user",
-      profileUsername: "octocat",
-    });
+const githubSafeUrl =
+  "https://github.com/chieaid24?tab=repositories#no-comparisons-redirected";
+const linkedinSafeUrl =
+  "https://www.linkedin.com/in/aidanchien/#no-comparisons-redirected";
 
-    browser.run("config", "routing", "github");
-    assert.deepEqual(browser.redirects, ["https://github.com/chieaid24"]);
+test("redirects the owner's GitHub Overview on direct load and refresh", async () => {
+  for (let load = 0; load < 2; load += 1) {
+    const browser = createBrowser({ href: "https://github.com/chieaid24" });
+    await browser.run("github");
+    assert.deepEqual(browser.redirects, [githubSafeUrl]);
   }
 });
 
-test("does not redirect the owner, organizations, or repositories", () => {
+test("redirects the owner's Followers but always allows Following", async () => {
+  const followers = createBrowser({
+    href: "https://github.com/chieaid24?tab=followers",
+  });
+  await followers.run("github");
+  assert.deepEqual(followers.redirects, [githubSafeUrl]);
+
+  const following = createBrowser({
+    href: "https://github.com/chieaid24?tab=following",
+  });
+  await following.run("github");
+  assert.deepEqual(following.redirects, []);
+});
+
+test("GitHub owner restrictions disable independently", async () => {
+  const overview = createBrowser({
+    href: "https://github.com/chieaid24",
+    settings: { blockGitHubOverview: false },
+  });
+  await overview.run("github");
+  assert.deepEqual(overview.redirects, []);
+
+  const followers = createBrowser({
+    href: "https://github.com/chieaid24?tab=followers",
+    settings: { blockGitHubFollowers: false },
+  });
+  await followers.run("github");
+  assert.deepEqual(followers.redirects, []);
+});
+
+test("redirects confirmed other GitHub users and respects its toggle", async () => {
+  const enabled = createBrowser({
+    href: "https://github.com/octocat?tab=stars",
+    profileType: "user",
+    profileUsername: "octocat",
+  });
+  await enabled.run("github");
+  assert.deepEqual(enabled.redirects, [githubSafeUrl]);
+
+  const disabled = createBrowser({
+    href: "https://github.com/octocat?tab=followers",
+    profileType: "user",
+    profileUsername: "octocat",
+    settings: { blockGitHubProfiles: false },
+  });
+  await disabled.run("github");
+  assert.deepEqual(disabled.redirects, []);
+});
+
+test("allows GitHub tabs, repositories, organizations, and system routes", async () => {
   for (const page of [
-    {
-      href: "https://github.com/chieaid24",
-      profileType: "user",
-      profileUsername: "chieaid24",
-    },
+    { href: "https://github.com/chieaid24?tab=repositories" },
+    { href: "https://github.com/chieaid24?tab=stars" },
+    { href: "https://github.com/chieaid24/repo" },
     {
       href: "https://github.com/openai",
       profileType: "organization",
       profileUsername: "openai",
     },
-    {
-      href: "https://github.com/octocat/hello-world",
-      profileType: "user",
-      profileUsername: "octocat",
-    },
+    { href: "https://github.com/openai/openai-node" },
+    { href: "https://github.com/issues" },
+    { href: "https://github.com/settings" },
+    { href: "https://github.com/notifications" },
   ]) {
     const browser = createBrowser(page);
-    browser.run("config", "routing", "github");
-    assert.deepEqual(browser.redirects, []);
+    await browser.run("github");
+    assert.deepEqual(browser.redirects, [], page.href);
   }
 });
 
-test("handles GitHub SPA navigation", () => {
-  const browser = createBrowser({
-    href: "https://github.com/chieaid24",
-    profileType: "user",
-    profileUsername: "chieaid24",
-  });
-  browser.run("config", "routing", "github");
-
-  browser.setPage({
-    href: "https://github.com/octocat",
-    profileType: "user",
-    profileUsername: "octocat",
-  });
-  browser.dispatchDocument("turbo:load");
-
-  assert.deepEqual(browser.redirects, ["https://github.com/chieaid24"]);
+test("GitHub SPA and history navigation cannot bypass restrictions", async () => {
+  for (const event of ["turbo:load", "popstate"]) {
+    const browser = createBrowser({
+      href: "https://github.com/chieaid24?tab=repositories",
+    });
+    await browser.run("github");
+    browser.setPage({ href: "https://github.com/chieaid24?tab=followers" });
+    if (event === "turbo:load") {
+      await browser.dispatchDocument(event);
+    } else {
+      await browser.dispatchWindow(event);
+    }
+    assert.deepEqual(browser.redirects, [githubSafeUrl]);
+  }
 });
 
-test("handles GitHub browser history navigation", () => {
+test("enabling a GitHub restriction applies immediately", async () => {
   const browser = createBrowser({
     href: "https://github.com/chieaid24",
-    profileType: "user",
-    profileUsername: "chieaid24",
+    settings: { blockGitHubOverview: false },
   });
-  browser.run("config", "routing", "github");
-
-  browser.setPage({
-    href: "https://github.com/octocat?tab=followers",
-    profileType: "user",
-    profileUsername: "octocat",
-  });
-  browser.dispatchWindow("popstate");
-
-  assert.deepEqual(browser.redirects, ["https://github.com/chieaid24"]);
+  await browser.run("github");
+  await browser.changeSetting("blockGitHubOverview", true);
+  assert.deepEqual(browser.redirects, [githubSafeUrl]);
 });
 
-test("redirects LinkedIn feed and other profiles on direct loads", () => {
+test("redirects LinkedIn feed and other profiles independently", async () => {
   for (const href of [
     "https://www.linkedin.com/feed/?trk=nav_back_to_linkedin",
     "https://www.linkedin.com/in/someone/details/education/",
   ]) {
     const browser = createBrowser({ href });
-    browser.run("config", "routing", "linkedin");
-    assert.deepEqual(browser.redirects, [
-      "https://www.linkedin.com/in/aidanchien/",
-    ]);
+    await browser.run("linkedin");
+    assert.deepEqual(browser.redirects, [linkedinSafeUrl]);
   }
+
+  const feedDisabled = createBrowser({
+    href: "https://www.linkedin.com/feed/",
+    settings: { blockLinkedInFeed: false },
+  });
+  await feedDisabled.run("linkedin");
+  assert.deepEqual(feedDisabled.redirects, []);
+
+  const profilesDisabled = createBrowser({
+    href: "https://www.linkedin.com/in/someone/",
+    settings: { blockLinkedInProfiles: false },
+  });
+  await profilesDisabled.run("linkedin");
+  assert.deepEqual(profilesDisabled.redirects, []);
 });
 
-test("allows the owner and LinkedIn application pages without redirect loops", () => {
+test("allows the LinkedIn owner and unrelated application pages", async () => {
   for (const href of [
     "https://www.linkedin.com/in/aidanchien/",
     "https://www.linkedin.com/in/aidanchien/details/experience/",
     "https://www.linkedin.com/jobs/",
     "https://www.linkedin.com/messaging/",
+    "https://www.linkedin.com/notifications/",
+    "https://www.linkedin.com/settings/",
   ]) {
     const browser = createBrowser({ href });
-    browser.run("config", "routing", "linkedin");
-    browser.triggerMutation();
-    assert.deepEqual(browser.redirects, []);
+    await browser.run("linkedin");
+    assert.deepEqual(browser.redirects, [], href);
   }
 });
 
-test("handles LinkedIn SPA and browser history navigation", () => {
-  const browser = createBrowser({ href: "https://www.linkedin.com/jobs/" });
-  browser.run("config", "routing", "linkedin");
-
-  browser.setPage({ href: "https://www.linkedin.com/in/someone/" });
-  browser.triggerMutation();
-
-  assert.deepEqual(browser.redirects, [
-    "https://www.linkedin.com/in/aidanchien/",
-  ]);
+test("LinkedIn SPA and history navigation cannot bypass restrictions", async () => {
+  for (const mode of ["mutation", "popstate"]) {
+    const browser = createBrowser({
+      href: "https://www.linkedin.com/jobs/",
+    });
+    await browser.run("linkedin");
+    browser.setPage({ href: "https://www.linkedin.com/in/someone/" });
+    if (mode === "mutation") {
+      await browser.triggerMutation();
+    } else {
+      await browser.dispatchWindow("popstate");
+    }
+    assert.deepEqual(browser.redirects, [linkedinSafeUrl]);
+  }
 });
 
-test("checks allowed routes after browser back and forward navigation", () => {
-  const browser = createBrowser({ href: "https://www.linkedin.com/jobs/" });
-  browser.run("config", "routing", "linkedin");
-
-  browser.setPage({ href: "https://www.linkedin.com/messaging/" });
-  browser.dispatchWindow("popstate");
-
-  assert.deepEqual(browser.redirects, []);
+test("enabling a LinkedIn restriction applies immediately", async () => {
+  const browser = createBrowser({
+    href: "https://www.linkedin.com/feed/",
+    settings: { blockLinkedInFeed: false },
+  });
+  await browser.run("linkedin");
+  await browser.changeSetting("blockLinkedInFeed", true);
+  assert.deepEqual(browser.redirects, [linkedinSafeUrl]);
 });

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "No Contributions",
-  "version": "1.1.0",
+  "name": "no-comparisons",
+  "version": "1.2.0",
   "description": "Reduces social-comparison distractions on GitHub and LinkedIn.",
   "icons": {
     "16": "assets/icon-16.png",
@@ -9,10 +9,23 @@
     "48": "assets/icon-48.png",
     "128": "assets/icon-128.png"
   },
+  "permissions": ["storage"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "no-comparisons"
+  },
   "content_scripts": [
     {
       "matches": ["https://github.com/*"],
-      "js": ["config.js", "routing.js", "github.js", "content.js"],
+      "js": [
+        "config.js",
+        "settings.js",
+        "routing.js",
+        "toast.js",
+        "dom.js",
+        "content.js",
+        "github.js"
+      ],
       "run_at": "document_start"
     },
     {
@@ -20,7 +33,15 @@
         "https://linkedin.com/*",
         "https://www.linkedin.com/*"
       ],
-      "js": ["config.js", "routing.js", "linkedin.js"],
+      "js": [
+        "config.js",
+        "settings.js",
+        "routing.js",
+        "toast.js",
+        "dom.js",
+        "linkedin-dom.js",
+        "linkedin.js"
+      ],
       "run_at": "document_start"
     }
   ]

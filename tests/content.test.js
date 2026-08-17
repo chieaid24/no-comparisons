@@ -1,77 +1,166 @@
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const test = require("node:test");
-const vm = require("node:vm");
 
-const source = fs.readFileSync(
-  path.join(__dirname, "..", "content.js"),
-  "utf8",
-);
+require("../dom.js");
+const githubDom = require("../content.js");
+const linkedinDom = require("../linkedin-dom.js");
+const { defaults } = require("../settings.js");
 
-const runContentScript = (elements) => {
-  let observer;
-  let observation;
-
-  const document = {
-    querySelectorAll(selector) {
-      return elements.get(selector) ?? [];
+const makeElement = ({ href = "", closest = null } = {}) => {
+  const classes = new Set();
+  return {
+    _closest: closest,
+    classList: {
+      add(name) {
+        classes.add(name);
+      },
+      contains(name) {
+        return classes.has(name);
+      },
+      remove(name) {
+        classes.delete(name);
+      },
     },
+    closest() {
+      return closest;
+    },
+    dataset: {},
+    href,
   };
-
-  class MutationObserver {
-    constructor(callback) {
-      observer = callback;
-    }
-
-    observe(target, options) {
-      observation = { target, options };
-    }
-  }
-
-  vm.runInNewContext(source, { document, MutationObserver });
-  return { document, observer, observation };
 };
 
-test("hides the contribution graph, activity, and year navigation", () => {
-  const graph = { hidden: false };
-  const activity = { hidden: false };
-  const desktopYears = { hidden: false };
-  const mobileYears = { hidden: false };
-  const { document, observation } = runContentScript(
+const makeDocument = (selectors) => {
+  const elements = new Set([...selectors.values()].flat());
+  for (const element of [...elements]) {
+    if (element._closest) {
+      elements.add(element._closest);
+    }
+  }
+  return {
+    getElementById() {
+      return {};
+    },
+    querySelectorAll(selector) {
+      if (selector.startsWith("[data-no-comparisons-feature=")) {
+        const feature = selector.match(/"(.+)"/)[1];
+        return [...elements].filter(
+          (element) => element.dataset.noComparisonsFeature === feature,
+        );
+      }
+      return selectors.get(selector) ?? [];
+    },
+  };
+};
+
+test("GitHub contribution hiding follows its setting and restores UI", () => {
+  const graph = makeElement();
+  const activity = makeElement();
+  const years = makeElement();
+  const document = makeDocument(
     new Map([
       [".js-yearly-contributions", [graph]],
       ["#js-contribution-activity", [activity]],
-      [".js-profile-timeline-year-list", [desktopYears, mobileYears]],
+      [".js-profile-timeline-year-list", [years]],
     ]),
   );
 
-  assert.equal(graph.hidden, true);
-  assert.equal(activity.hidden, true);
-  assert.equal(desktopYears.hidden, true);
-  assert.equal(mobileYears.hidden, true);
-  assert.equal(observation.target, document);
-  assert.equal(observation.options.childList, true);
-  assert.equal(observation.options.subtree, true);
+  githubDom.apply(document, "chieaid24", defaults);
+  for (const element of [graph, activity, years]) {
+    assert.equal(element.classList.contains("no-comparisons-hidden"), true);
+  }
+
+  githubDom.apply(document, "chieaid24", {
+    ...defaults,
+    hideGitHubContributions: false,
+  });
+  for (const element of [graph, activity, years]) {
+    assert.equal(element.classList.contains("no-comparisons-hidden"), false);
+  }
 });
 
-test("does nothing when profile contribution elements are absent", () => {
-  assert.doesNotThrow(() => runContentScript(new Map()));
+test("GitHub hides only the owner's Overview entry", () => {
+  const ownMenuItem = makeElement();
+  const ownOverview = makeElement({
+    href: "https://github.com/chieaid24",
+    closest: ownMenuItem,
+  });
+  const otherOverview = makeElement({ href: "https://github.com/octocat" });
+  const document = makeDocument(
+    new Map([
+      [
+        'a[data-tab-item="overview"], li[data-menu-item="overview"] a[href]',
+        [ownOverview, otherOverview],
+      ],
+    ]),
+  );
+
+  githubDom.apply(document, "chieaid24", defaults);
+  assert.equal(ownMenuItem.classList.contains("no-comparisons-hidden"), true);
+  assert.equal(otherOverview.classList.contains("no-comparisons-hidden"), false);
+
+  githubDom.apply(document, "chieaid24", {
+    ...defaults,
+    blockGitHubOverview: false,
+  });
+  assert.equal(ownMenuItem.classList.contains("no-comparisons-hidden"), false);
 });
 
-test("hides contribution elements added during client-side navigation", () => {
-  const elements = new Map();
-  const { observer } = runContentScript(elements);
-  const graph = { hidden: false };
-  const activity = { hidden: false };
-  const years = { hidden: false };
+test("GitHub hides only the owner's Followers links and always leaves Following", () => {
+  const ownFollowers = makeElement({
+    href: "https://github.com/chieaid24?tab=followers",
+  });
+  const otherFollowers = makeElement({
+    href: "https://github.com/octocat?tab=followers",
+  });
+  const ownFollowing = makeElement({
+    href: "https://github.com/chieaid24?tab=following",
+  });
+  const document = makeDocument(
+    new Map([
+      ['a[href*="tab=followers"]', [ownFollowers, otherFollowers]],
+      ['a[href*="tab=following"]', [ownFollowing]],
+    ]),
+  );
 
-  elements.set(".js-yearly-contributions", [graph]);
-  elements.set("#js-contribution-activity", [activity]);
-  elements.set(".js-profile-timeline-year-list", [years]);
-  observer();
+  githubDom.apply(document, "chieaid24", defaults);
+  assert.equal(ownFollowers.classList.contains("no-comparisons-hidden"), true);
+  assert.equal(otherFollowers.classList.contains("no-comparisons-hidden"), false);
+  assert.equal(ownFollowing.classList.contains("no-comparisons-hidden"), false);
 
-  assert.equal(graph.hidden, true);
-  assert.equal(activity.hidden, true);
-  assert.equal(years.hidden, true);
+  githubDom.apply(document, "chieaid24", {
+    ...defaults,
+    blockGitHubFollowers: false,
+  });
+  assert.equal(ownFollowers.classList.contains("no-comparisons-hidden"), false);
+});
+
+test("LinkedIn hides only its Home navigation entry and restores it", () => {
+  const homeItem = makeElement();
+  const home = makeElement({
+    href: "https://www.linkedin.com/feed/",
+    closest: homeItem,
+  });
+  const jobs = makeElement({ href: "https://www.linkedin.com/jobs/" });
+  const profile = makeElement({
+    href: "https://www.linkedin.com/in/someone/",
+  });
+  const document = makeDocument(
+    new Map([
+      [
+        'nav a[href], a[data-test-global-nav-link="feed"]',
+        [home, jobs, profile],
+      ],
+    ]),
+  );
+
+  linkedinDom.apply(document, defaults);
+  assert.equal(homeItem.classList.contains("no-comparisons-hidden"), true);
+  assert.equal(jobs.classList.contains("no-comparisons-hidden"), false);
+  assert.equal(profile.classList.contains("no-comparisons-hidden"), false);
+
+  linkedinDom.apply(document, {
+    ...defaults,
+    blockLinkedInFeed: false,
+  });
+  assert.equal(homeItem.classList.contains("no-comparisons-hidden"), false);
 });
