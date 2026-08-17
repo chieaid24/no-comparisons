@@ -9,6 +9,7 @@
 })(globalThis, (root) => {
   const defaults = Object.freeze({
     hideGitHubContributions: true,
+    hideGitHubCommitCount: true,
     blockGitHubOverview: true,
     blockGitHubFollowers: true,
     blockGitHubProfiles: true,

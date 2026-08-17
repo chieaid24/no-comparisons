@@ -164,3 +164,64 @@ test("LinkedIn hides only its Home navigation entry and restores it", () => {
   });
   assert.equal(homeItem.classList.contains("no-comparisons-hidden"), false);
 });
+
+test("GitHub masks the commit count but keeps the button and restores it", () => {
+  const label = { children: [], dataset: {}, textContent: "1,465,160 Commits" };
+  const link = {
+    href: "https://github.com/torvalds/linux/commits/master/",
+    querySelectorAll: (selector) => (selector === "*" ? [label] : []),
+  };
+  const document = {
+    getElementById: () => ({}),
+    querySelectorAll(selector) {
+      if (selector === 'a[href*="/commits/"]') {
+        return [link];
+      }
+
+      if (selector.startsWith("[data-no-comparisons-feature=")) {
+        const feature = selector.match(/"(.+)"/)[1];
+        return [label].filter(
+          (element) => element.dataset.noComparisonsFeature === feature,
+        );
+      }
+
+      return [];
+    },
+  };
+
+  githubDom.apply(document, "chieaid24", defaults);
+  assert.equal(label.textContent, "Commits");
+  assert.equal(label.dataset.noComparisonsCommitCount, "1,465,160 Commits");
+
+  githubDom.apply(document, "chieaid24", defaults);
+  assert.equal(label.textContent, "Commits");
+
+  githubDom.apply(document, "chieaid24", {
+    ...defaults,
+    hideGitHubCommitCount: false,
+  });
+  assert.equal(label.textContent, "1,465,160 Commits");
+  assert.equal(label.dataset.noComparisonsFeature, undefined);
+});
+
+test("GitHub leaves non-repo commit links untouched", () => {
+  const label = { children: [], dataset: {}, textContent: "1,234 Commits" };
+  const link = {
+    href: "https://github.com/some/feed/commits-digest/commits/",
+    querySelectorAll: (selector) => (selector === "*" ? [label] : []),
+  };
+  const document = {
+    getElementById: () => ({}),
+    querySelectorAll(selector) {
+      if (selector === 'a[href*="/commits/"]') {
+        return [link];
+      }
+
+      return [];
+    },
+  };
+
+  githubDom.apply(document, "chieaid24", defaults);
+  assert.equal(label.textContent, "1,234 Commits");
+  assert.equal(label.dataset.noComparisonsFeature, undefined);
+});
