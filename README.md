@@ -1,8 +1,15 @@
 # no-contributions
 
-no-contributions hides the contribution graph and contribution activity from GitHub user profiles.
+no-contributions reduces social-comparison distractions on GitHub and LinkedIn.
 
-The extension leaves repositories, organizations, issues, pull requests, and other GitHub pages unchanged. It stores no data and makes no network requests.
+The extension:
+
+- Hides GitHub contribution graphs, activity, and year navigation.
+- Redirects other individual GitHub profiles to `github.com/chieaid24`.
+- Redirects the LinkedIn home feed to `linkedin.com/in/aidanchien`.
+- Redirects other LinkedIn profiles and their subpages to `linkedin.com/in/aidanchien`.
+
+Repositories, organizations, issues, pull requests, jobs, messaging, notifications, settings, and other application pages remain accessible. The extension stores no data and makes no network requests.
 
 ## Installation
 
@@ -17,6 +24,10 @@ The extension leaves repositories, organizations, issues, pull requests, and oth
 4. Click **Load unpacked**.
 5. Select the `no-contributions` folder.
 
+## Configuration
+
+Set `githubUsername` and `linkedinProfileSlug` in `config.js` before loading the extension for another account.
+
 ## Why?
 
-Contribution graphs can encourage judging developers by visible GitHub activity instead of the quality of their work. This extension removes that signal.
+Contribution graphs, social feeds, and other profiles can shift attention toward visible activity and comparison. This extension removes those distractions while keeping work pages accessible.
