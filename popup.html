@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>no-comparisons</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main>
+      <h1>no-comparisons</h1>
+      <label>
+        <span>Hide GitHub contributions</span>
+        <input
+          type="checkbox"
+          role="switch"
+          data-setting="hideGitHubContributions"
+        />
+      </label>
+      <label>
+        <span>Block my GitHub Overview</span>
+        <input
+          type="checkbox"
+          role="switch"
+          data-setting="blockGitHubOverview"
+        />
+      </label>
+      <label>
+        <span>Block my GitHub Followers</span>
+        <input
+          type="checkbox"
+          role="switch"
+          data-setting="blockGitHubFollowers"
+        />
+      </label>
+      <label>
+        <span>Block other GitHub profiles</span>
+        <input
+          type="checkbox"
+          role="switch"
+          data-setting="blockGitHubProfiles"
+        />
+      </label>
+      <label>
+        <span>Block LinkedIn home feed</span>
+        <input
+          type="checkbox"
+          role="switch"
+          data-setting="blockLinkedInFeed"
+        />
+      </label>
+      <label>
+        <span>Block other LinkedIn profiles</span>
+        <input
+          type="checkbox"
+          role="switch"
+          data-setting="blockLinkedInProfiles"
+        />
+      </label>
+    </main>
+    <script src="settings.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

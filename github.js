@@ -1,43 +1,72 @@
 (() => {
-  const { githubUsername } = globalThis.noContributionsConfig;
-  const routing = globalThis.noContributionsRouting;
-  const ownProfileUrl = `https://github.com/${githubUsername}`;
+  const { githubUsername } = globalThis.noComparisonsConfig;
+  const settingsApi = globalThis.noComparisonsSettings;
+  const routing = globalThis.noComparisonsRouting;
+  const toast = globalThis.noComparisonsToast;
+  const githubDom = globalThis.noComparisonsGitHubDom;
+  let currentSettings;
+  let settingsChanges = {};
   let pending = false;
   let redirecting = false;
 
-  const checkRoute = () => {
+  const run = () => {
     pending = false;
+    if (!currentSettings) {
+      return;
+    }
+
+    githubDom.apply(document, githubUsername, currentSettings);
     if (redirecting) {
       return;
     }
 
     const profile = routing.getGitHubProfile(document);
-    if (routing.shouldRedirectGitHub(location.href, githubUsername, profile)) {
+    const destination = routing.getGitHubRedirect(
+      location.href,
+      githubUsername,
+      profile,
+      currentSettings,
+    );
+    if (destination) {
       redirecting = true;
-      location.replace(ownProfileUrl);
+      location.replace(toast.withMarker(destination));
     }
   };
 
-  const scheduleCheck = () => {
+  const schedule = () => {
     if (pending) {
       return;
     }
 
     pending = true;
-    queueMicrotask(checkRoute);
+    queueMicrotask(run);
   };
 
-  scheduleCheck();
-  new MutationObserver(scheduleCheck).observe(document, {
+  new MutationObserver(schedule).observe(document, {
     childList: true,
     subtree: true,
   });
 
   for (const eventName of ["turbo:load", "turbo:render", "pjax:end"]) {
-    document.addEventListener(eventName, scheduleCheck, true);
+    document.addEventListener(eventName, schedule, true);
   }
 
   for (const eventName of ["pageshow", "popstate"]) {
-    window.addEventListener(eventName, scheduleCheck, true);
+    window.addEventListener(eventName, schedule, true);
   }
+
+  settingsApi.onChanged((changes) => {
+    settingsChanges = { ...settingsChanges, ...changes };
+    currentSettings = {
+      ...settingsApi.defaults,
+      ...currentSettings,
+      ...changes,
+    };
+    schedule();
+  });
+  settingsApi.load().then((settings) => {
+    currentSettings = { ...settings, ...settingsChanges };
+    settingsChanges = {};
+    schedule();
+  });
 })();
