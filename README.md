@@ -1,6 +1,6 @@
 # No Comparisons
 
-This Chrome extension hides contribution activity and blocks social-comparison distractions on GitHub and LinkedIn.
+This Chrome extension hides contribution activity and blocks social comparison distractions on GitHub and LinkedIn.
 
 ## Installation
 
