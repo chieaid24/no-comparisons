@@ -10,6 +10,7 @@
   const defaults = Object.freeze({
     hideGitHubContributions: true,
     hideGitHubCommitCount: true,
+    blockGitHubHome: true,
     blockGitHubOverview: true,
     blockGitHubFollowers: true,
     blockGitHubProfiles: true,

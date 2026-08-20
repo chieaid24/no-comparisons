@@ -23,6 +23,7 @@ const sources = Object.fromEntries(
 
 const defaultSettings = {
   hideGitHubContributions: true,
+  blockGitHubHome: true,
   blockGitHubOverview: true,
   blockGitHubFollowers: true,
   blockGitHubProfiles: true,
@@ -235,6 +236,19 @@ const githubSafeUrl = "https://github.com/chieaid24?tab=repositories";
 const githubProfileRedirect = `${githubSafeUrl}#no-comparisons-redirected`;
 const linkedinSafeUrl = "https://www.linkedin.com/in/aidanchien/";
 const linkedinProfileRedirect = `${linkedinSafeUrl}#no-comparisons-redirected`;
+
+test("redirects the GitHub home page and respects its toggle", async () => {
+  const enabled = createBrowser({ href: "https://github.com/" });
+  await enabled.run("github");
+  assert.deepEqual(enabled.redirects, [githubSafeUrl]);
+
+  const disabled = createBrowser({
+    href: "https://github.com/",
+    settings: { blockGitHubHome: false },
+  });
+  await disabled.run("github");
+  assert.deepEqual(disabled.redirects, []);
+});
 
 test("redirects the owner's GitHub Overview on direct load and refresh", async () => {
   for (let load = 0; load < 2; load += 1) {

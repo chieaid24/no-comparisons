@@ -65,6 +65,10 @@
     }
 
     const segments = pathSegments(url);
+    if (segments.length === 0) {
+      return { kind: "home" };
+    }
+
     if (segments.length !== 1) {
       return { kind: "allow" };
     }
@@ -124,6 +128,10 @@
   const getGitHubRedirect = (value, ownUsername, profile, settings) => {
     const route = classifyGitHubUrl(value, ownUsername);
     const safeUrl = `https://github.com/${ownUsername}?tab=repositories`;
+
+    if (route.kind === "home" && settings.blockGitHubHome) {
+      return safeUrl;
+    }
 
     if (route.kind === "own-overview" && settings.blockGitHubOverview) {
       return safeUrl;
