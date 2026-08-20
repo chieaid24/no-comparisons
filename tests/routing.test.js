@@ -13,6 +13,31 @@ const { defaults } = require("../settings.js");
 const ownGitHubUsername = "chieaid24";
 const ownLinkedInSlug = "aidanchien";
 
+test("classifies the GitHub home page and redirects it when enabled", () => {
+  const safeUrl = "https://github.com/chieaid24?tab=repositories";
+  for (const url of [
+    "https://github.com/",
+    "https://github.com",
+    "https://github.com/?tab=feed",
+    "https://github.com/#recent",
+  ]) {
+    assert.equal(classifyGitHubUrl(url, ownGitHubUsername).kind, "home", url);
+    assert.equal(
+      getGitHubRedirect(url, ownGitHubUsername, null, defaults),
+      safeUrl,
+      url,
+    );
+    assert.equal(
+      getGitHubRedirect(url, ownGitHubUsername, null, {
+        ...defaults,
+        blockGitHubHome: false,
+      }),
+      null,
+      url,
+    );
+  }
+});
+
 test("classifies the owner's GitHub Overview and Followers separately", () => {
   for (const url of [
     "https://github.com/chieaid24",
